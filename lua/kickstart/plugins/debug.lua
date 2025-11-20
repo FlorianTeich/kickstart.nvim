@@ -2,9 +2,8 @@
 --
 -- Shows how to use the DAP plugin to debug your code.
 --
--- Primarily focused on configuring the debugger for Go, but can
--- be extended to other languages as well. That's why it's called
--- kickstart.nvim and not kitchen-sink.nvim ;)
+-- Configured for Python debugging with debugpy.
+-- Can be extended to other languages as well.
 
 return {
   -- NOTE: Yes, you can install new plugins here!
@@ -21,8 +20,8 @@ return {
     'mason-org/mason.nvim',
     'jay-babu/mason-nvim-dap.nvim',
 
-    -- Add your own debuggers here
-    'leoluz/nvim-dap-go',
+    -- Python debugging support
+    'mfussenegger/nvim-dap-python',
   },
   keys = {
     -- Basic debugging keymaps, feel free to change to your liking!
@@ -94,7 +93,7 @@ return {
       -- online, please don't ask me how to install them :)
       ensure_installed = {
         -- Update this to ensure that you have the debuggers for the langs you want
-        'delve',
+        'debugpy',
       },
     }
 
@@ -136,13 +135,54 @@ return {
     dap.listeners.before.event_terminated['dapui_config'] = dapui.close
     dap.listeners.before.event_exited['dapui_config'] = dapui.close
 
-    -- Install golang specific config
-    require('dap-go').setup {
-      delve = {
-        -- On Windows delve must be run attached or it crashes.
-        -- See https://github.com/leoluz/nvim-dap-go/blob/main/README.md#configuring
-        detached = vim.fn.has 'win32' == 0,
-      },
-    }
+    -- Install Python specific config
+    -- Function to find the best Python executable with debugpy
+    local function find_python_with_debugpy()
+      local python_candidates = {
+        '~/.config/nvim/.venv/bin/python', -- nvim config venv
+        vim.fn.exepath('python3'), -- system python3
+        vim.fn.exepath('python'), -- system python
+      }
+      
+      for _, python_path in ipairs(python_candidates) do
+        if python_path and python_path ~= '' and vim.fn.executable(python_path) == 1 then
+          -- Test if this python has debugpy
+          local handle = io.popen(python_path .. ' -c "import debugpy; print(debugpy.__file__)" 2>/dev/null')
+          if handle then
+            local result = handle:read('*a')
+            handle:close()
+            if result and result:match('debugpy') then
+              return python_path
+            end
+          end
+        end
+      end
+      
+      -- Fallback to the nvim config venv (we just installed debugpy there)
+      return '~/.config/nvim/.venv/bin/python'
+    end
+    
+    require('dap-python').setup(find_python_with_debugpy())
+    
+    -- Add Python debugging configurations
+    table.insert(dap.configurations.python, {
+      type = 'python',
+      request = 'launch',
+      name = 'Launch file',
+      program = '${file}',
+      pythonPath = function()
+        -- debugpy supports launching an application with a different interpreter
+        -- The code below looks for a `venv` or `.venv` folder in the current directly and uses the python within.
+        -- You could adapt this - to for example use the `VIRTUAL_ENV` environment variable.
+        local cwd = vim.fn.getcwd()
+        if vim.fn.executable(cwd .. '/venv/bin/python') == 1 then
+          return cwd .. '/venv/bin/python'
+        elseif vim.fn.executable(cwd .. '/.venv/bin/python') == 1 then
+          return cwd .. '/.venv/bin/python'
+        else
+          return '/usr/bin/python'
+        end
+      end,
+    })
   end,
 }

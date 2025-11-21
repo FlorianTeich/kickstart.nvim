@@ -671,7 +671,10 @@ require('lazy').setup({
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
-        -- clangd = {},
+        clangd = {
+          cmd = { 'clangd', '--background-index', '--clang-tidy', '--completion-style=bundled' },
+          filetypes = { 'c', 'cpp', 'objc', 'objcpp', 'cuda' },
+        },
         -- gopls = {},
         pyright = {
           settings = {
@@ -684,7 +687,44 @@ require('lazy').setup({
             },
           },
         },
-        -- rust_analyzer = {},
+        rust_analyzer = {
+          settings = {
+            ['rust-analyzer'] = {
+              cargo = {
+                allFeatures = true,
+              },
+              checkOnSave = {
+                command = 'clippy',
+              },
+            },
+          },
+        },
+        jdtls = {
+          settings = {
+            java = {
+              configuration = {
+                updateBuildConfiguration = 'interactive',
+              },
+              completion = {
+                favoriteStaticMembers = {
+                  'org.hamcrest.MatcherAssert.assertThat',
+                  'org.hamcrest.Matchers.*',
+                  'org.hamcrest.CoreMatchers.*',
+                  'java.util.Objects.requireNonNull',
+                  'java.util.Objects.requireNonNullElse',
+                  'org.mockito.Mockito.*',
+                },
+              },
+              sources = {
+                organizeImports = {
+                  starThreshold = 9999,
+                  staticStarThreshold = 9999,
+                },
+              },
+            },
+          },
+        },
+        -- Note: Scala is handled by nvim-metals plugin, not through Mason/lspconfig
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
         -- Some languages (like typescript) have entire language plugins that can be useful:
@@ -778,6 +818,11 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
+        cpp = { 'clang-format' },
+        c = { 'clang-format' },
+        rust = { 'rustfmt' },
+        java = { 'google-java-format' },
+        scala = { 'scalafmt' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
@@ -990,6 +1035,35 @@ require('lazy').setup({
   -- require 'kickstart.plugins.autopairs',
   require 'kickstart.plugins.neo-tree',
   -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
+
+  -- Scala language support
+  {
+    'scalameta/nvim-metals',
+    dependencies = {
+      'nvim-lua/plenary.nvim',
+    },
+    ft = { 'scala', 'sbt' },
+    opts = function()
+      local metals_config = require('metals').bare_config()
+      metals_config.settings = {
+        showImplicitArguments = true,
+        showInferredType = true,
+        excludedPackages = { 'akka.actor.typed.javadsl', 'com.github.swagger.akka.javadsl' },
+      }
+      metals_config.capabilities = require('blink.cmp').get_lsp_capabilities()
+      return metals_config
+    end,
+    config = function(self, metals_config)
+      local nvim_metals_group = vim.api.nvim_create_augroup('nvim-metals', { clear = true })
+      vim.api.nvim_create_autocmd('FileType', {
+        pattern = self.ft,
+        callback = function()
+          require('metals').initialize_or_attach(metals_config)
+        end,
+        group = nvim_metals_group,
+      })
+    end,
+  },
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.

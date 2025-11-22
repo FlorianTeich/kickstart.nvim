@@ -199,3 +199,48 @@ sudo pacman -S --noconfirm --needed gcc make git ripgrep fd unzip neovim
 ```
 </details>
 
+## Keymaps
+
+| Mode         | Keys         | Action                      | Description                   |
+| ------------ | ------------ | --------------------------- | ----------------------------- |
+| **Normal**   | `<Esc>`      | `:nohlsearch`               | Clear search highlights       |
+| **Normal**   | `<leader>q`  | `vim.diagnostic.setloclist` | Open diagnostic quickfix list |
+| **Terminal** | `<Esc><Esc>` | `<C-\><C-n>`                | Exit terminal mode            |
+| **Normal**   | `<C-h>`      | `<C-w><C-h>`                | Move focus to left split      |
+| **Normal**   | `<C-l>`      | `<C-w><C-l>`                | Move focus to right split     |
+| **Normal**   | `<C-j>`      | `<C-w><C-j>`                | Move focus to lower split     |
+| **Normal**   | `<C-k>`      | `<C-w><C-k>`                | Move focus to upper split     |
+
+
+| Mode       | Keys               | Telescope Action             | Description                    |
+| ---------- | ------------------ | ---------------------------- | ------------------------------ |
+| **Normal** | `<leader>sh`       | `help_tags`                  | Search help                    |
+| **Normal** | `<leader>sk`       | `keymaps`                    | Search keymaps                 |
+| **Normal** | `<leader>sf`       | `find_files`                 | Search files                   |
+| **Normal** | `<leader>ss`       | `builtin`                    | Search Telescope pickers       |
+| **Normal** | `<leader>sw`       | `grep_string`                | Search word under cursor       |
+| **Normal** | `<leader>sg`       | `live_grep`                  | Grep search                    |
+| **Normal** | `<leader>sd`       | `diagnostics`                | Search diagnostics             |
+| **Normal** | `<leader>sr`       | `resume`                     | Resume last Telescope search   |
+| **Normal** | `<leader>s.`       | `oldfiles`                   | Search recent files            |
+| **Normal** | `<leader><leader>` | `buffers`                    | Find buffers                   |
+| **Normal** | `<leader>/`        | `current_buffer_fuzzy_find`  | Fuzzy find in current buffer   |
+| **Normal** | `<leader>s/`       | Live grep open files         | Grep through open files only   |
+| **Normal** | `<leader>sn`       | `find_files` (Neovim config) | Search Neovim config directory |
+
+| Mode                | Keys         | Action                          | Description                             |
+| ------------------- | ------------ | ------------------------------- | --------------------------------------- |
+| **Normal**          | `grn`        | `vim.lsp.buf.rename`            | Rename symbol                           |
+| **Normal / Visual** | `gra`        | `vim.lsp.buf.code_action`       | Code actions                            |
+| **Normal**          | `grr`        | `lsp_references`                | Find references                         |
+| **Normal**          | `gri`        | `lsp_implementations`           | Go to implementation                    |
+| **Normal**          | `grd`        | `lsp_definitions`               | Go to definition                        |
+| **Normal**          | `grD`        | `vim.lsp.buf.declaration`       | Go to declaration                       |
+| **Normal**          | `gO`         | `lsp_document_symbols`          | Document symbols                        |
+| **Normal**          | `gW`         | `lsp_dynamic_workspace_symbols` | Workspace symbols                       |
+| **Normal**          | `grt`        | `lsp_type_definitions`          | Go to type definition                   |
+| **Normal**          | `<leader>th` | Toggle inlay hints              | Toggle LSP inlay hints (when supported) |
+
+| Mode                        | Keys        | Action           | Description           |
+| --------------------------- | ----------- | ---------------- | --------------------- |
+| **All modes (`mode = ''`)** | `<leader>f` | `conform.format` | Format current buffer |

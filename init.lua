@@ -205,6 +205,8 @@ vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper win
 -- vim.keymap.set("n", "<C-S-j>", "<C-w>J", { desc = "Move window to the lower" })
 -- vim.keymap.set("n", "<C-S-k>", "<C-w>K", { desc = "Move window to the upper" })
 
+vim.keymap.set('n', '<C-t>', ':tabnew<CR>', { noremap = true, silent = true })
+
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
 
@@ -999,8 +1001,33 @@ require('lazy').setup({
     build = ':TSUpdate',
     main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
+    dependencies = {
+      'nvim-treesitter/nvim-treesitter-textobjects',
+    },
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
+      ensure_installed = {
+        'bash',
+        'c',
+        'diff',
+        'html',
+        'lua',
+        'luadoc',
+        'markdown',
+        'markdown_inline',
+        'query',
+        'vim',
+        'vimdoc',
+        'yaml',
+        'java',
+        'javascript',
+        'json',
+        'python',
+        'rust',
+        'scala',
+        'typescript',
+        'go',
+        'cpp',
+      },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
@@ -1011,6 +1038,18 @@ require('lazy').setup({
         additional_vim_regex_highlighting = { 'ruby' },
       },
       indent = { enable = true, disable = { 'ruby' } },
+      textobjects = {
+        select = {
+          enable = true,
+          lookahead = true,
+          keymaps = {
+            ['af'] = '@function.outer',
+            ['if'] = '@function.inner',
+            ['ac'] = '@class.outer',
+            ['ic'] = '@class.inner',
+          },
+        },
+      },
     },
     -- There are additional nvim-treesitter modules that you can use to interact
     -- with nvim-treesitter. You should go explore a few and see what interests you:
@@ -1097,6 +1136,25 @@ require('lazy').setup({
     },
   },
 })
+
+vim.keymap.set('n', '<leader>uc', function()
+  local start = vim.fn.line '.'
+  local finish = start
+
+  -- extend upward
+  while start > 1 and vim.fn.getline(start - 1):match '^#' do
+    start = start - 1
+  end
+
+  -- extend downward
+  local last = vim.fn.line '$'
+  while finish < last and vim.fn.getline(finish + 1):match '^#' do
+    finish = finish + 1
+  end
+
+  -- Run Comment.nvim operator in normal mode over the range
+  vim.cmd(string.format('%d,%dnormal gc', start, finish))
+end, { desc = 'Toggle comment on contiguous # block' })
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et

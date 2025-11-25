@@ -236,6 +236,14 @@ end
 local rtp = vim.opt.rtp
 rtp:prepend(lazypath)
 
+local function toggle_diffview(cmd)
+  if next(require("diffview.lib").views) == nil then
+    vim.cmd(cmd)
+  else
+    vim.cmd("DiffviewClose")
+  end
+end
+
 -- [[ Configure and install plugins ]]
 --
 --  To check the current status of your plugins, run
@@ -995,6 +1003,34 @@ require('lazy').setup({
       -- ... and there is more!
       --  Check out: https://github.com/echasnovski/mini.nvim
     end,
+  },
+  {
+    "sindrets/diffview.nvim",
+    command = "DiffviewOpen",
+    cond = is_git_root,
+    keys = {
+      {
+        "<leader>gd",
+        function()
+          toggle_diffview("DiffviewOpen")
+        end,
+        desc = "Diff Index",
+      },
+      {
+        "<leader>gD",
+        function()
+          toggle_diffview("DiffviewOpen origin/main...HEAD")
+        end,
+        desc = "Diff main",
+      },
+      {
+        "<leader>gf",
+        function()
+          toggle_diffview("DiffviewFileHistory %")
+        end,
+        desc = "Open diffs for current File",
+      },
+    }
   },
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',

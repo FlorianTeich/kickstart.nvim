@@ -9,7 +9,7 @@ return {
       config = {
         scratch_repl = true,
         -- How the repl window will be displayed
-        repl_open_cmd = view.bottom(40),
+        repl_open_cmd = "botright 12 new | setlocal buftype=nofile",
         -- Send selections to the DAP repl if an nvim-dap session is running.
         dap_integration = true,
         -- Choose your preferred REPL for each language:

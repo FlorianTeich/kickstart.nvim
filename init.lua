@@ -796,6 +796,93 @@ require('lazy').setup({
     end,
   },
 
+  {
+    'j-hui/fidget.nvim',
+    opts = {},
+  },
+
+  {
+    "olimorris/codecompanion.nvim",
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "nvim-treesitter/nvim-treesitter",
+      -- Optional but nice:
+      --"hrsh7th/nvim-cmp",            -- for chat buffer completion
+      "nvim-telescope/telescope.nvim", -- for action palette
+    },
+    opts = {
+      -- Global plugin options
+      opts = {
+        -- set to "DEBUG" or "TRACE" if you want verbose logs:
+        -- log_level = "DEBUG",
+      },
+
+      ----------------------------------------------------------------
+      -- Use Ollama as default adapter
+      ----------------------------------------------------------------
+      -- Ollama is supported out-of-the-box as an HTTP adapter.
+      -- This assumes `ollama serve` is running on 127.0.0.1:11434.
+      strategies = {
+        chat = {
+          adapter = "litellm",
+        },
+        inline = {
+          adapter = "litellm",
+        },
+        cmd = {
+          adapter = "litellm",
+        },
+      },
+
+      -- Optional: customize the built-in Ollama adapter (e.g. default model)
+      adapters = {
+        http = {
+          litellm = function()
+            -- `openai_compatible` is meant exactly for gateways like LiteLLM
+            return require("codecompanion.adapters").extend("openai_compatible", {
+              env = {
+                -- URL of your LiteLLM proxy / gateway
+                -- (default Quickstart is http://0.0.0.0:4000) :contentReference[oaicite:0]{index=0}
+                url = "http://127.0.0.1:4000",
+
+                -- Name of the ENV VAR that holds your LiteLLM API key
+                -- If your proxy accepts any key, you can do:
+                --   export LITELLM_API_KEY='anything'
+                api_key = "sk-1234",
+
+                -- LiteLLM’s OpenAI-style chat endpoint
+                -- (by default it exposes `/chat/completions` for chat) :contentReference[oaicite:1]{index=1}
+                chat_url = "/chat/completions",
+              },
+
+              headers = {
+                ["Content-Type"] = "application/json",
+                -- `${api_key}` gets replaced with the resolved env value
+                ["Authorization"] = "Bearer ${api_key}",
+              },
+
+              -- Default model LiteLLM should route to
+              -- Must match the *model_name* you configured in litellm_config.yaml
+              -- e.g. "ollama/qwen2.5-coder" or "gpt-4o", etc.
+              schema = {
+                model = {
+                  default = "ollama/gemma3:4b",
+                  --default = "eu.anthropic.claude-3-7-sonnet-20250219-v1:0",
+                },
+              },
+
+              -- Optional, but nice: force streaming
+              parameters = {
+                stream = true,
+              },
+            })
+          end,
+        },
+      },
+    },
+  },
+
+
   { -- Autoformat
     'stevearc/conform.nvim',
     event = { 'BufWritePre' },
@@ -1095,6 +1182,8 @@ require('lazy').setup({
     --    - Treesitter + textobjects: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
   },
 
+  
+
   -- The following comments only work if you have downloaded the kickstart repo, not just copy pasted the
   -- init.lua. If you want these files, they are in the repository, so you can just download them and
   -- place them in the correct locations.
@@ -1115,32 +1204,64 @@ require('lazy').setup({
 
   -- Scala language support
   {
-    'scalameta/nvim-metals',
-    dependencies = {
-      'nvim-lua/plenary.nvim',
+  'scalameta/nvim-metals',
+  dependencies = {
+    {
+      'j-hui/fidget.nvim',
+      opts = {},
     },
-    ft = { 'scala', 'sbt' },
-    opts = function()
-      local metals_config = require('metals').bare_config()
-      metals_config.settings = {
-        showImplicitArguments = true,
-        showInferredType = true,
-        excludedPackages = { 'akka.actor.typed.javadsl', 'com.github.swagger.akka.javadsl' },
-      }
-      metals_config.capabilities = require('blink.cmp').get_lsp_capabilities()
-      return metals_config
-    end,
-    config = function(self, metals_config)
-      local nvim_metals_group = vim.api.nvim_create_augroup('nvim-metals', { clear = true })
-      vim.api.nvim_create_autocmd('FileType', {
-        pattern = self.ft,
-        callback = function()
-          require('metals').initialize_or_attach(metals_config)
-        end,
-        group = nvim_metals_group,
-      })
-    end,
+    --{ 'hrsh7th/cmp-nvim-lsp' },
+    -- IMPORTANT: no need to depend on nvim-dap here anymore
   },
+  ft = { 'scala', 'sbt', 'java' },
+  opts = function()
+    local metals_config = require('metals').bare_config()
+
+    metals_config.settings = {
+      showImplicitArguments = true,
+      gradleScript = vim.fn.getcwd() .. '/gradlew',
+      customProjectRoot = vim.fn.getcwd(),
+      excludedPackages = { 'akka.actor.typed.javadsl', 'com.github.swagger.akka.javadsl' },
+    }
+
+    metals_config.init_options.statusBarProvider = 'off'
+    local capabilities = vim.lsp.protocol.make_client_capabilities()
+    local ok, cmp_lsp = pcall(require, 'cmp_nvim_lsp')
+    if ok then
+      capabilities = cmp_lsp.default_capabilities(capabilities)
+    end
+    metals_config.capabilities = capabilities
+
+    metals_config.on_attach = function(client, bufnr)
+      -------------------------------------------------------------------
+      -- THIS LINE IS CRITICAL FOR DEBUGGING:
+      -------------------------------------------------------------------
+      require('metals').setup_dap()
+
+      -- your LSP mappings ...
+      local map = vim.keymap.set
+      map('n', 'gD', vim.lsp.buf.definition)
+      map('n', 'K', vim.lsp.buf.hover)
+      -- (rest of your mappings: gi, gr, gds, gws, etc…)
+
+      -- you can now drop the old dap keymaps here,
+      -- since they live in your unified nvim-dap config
+    end
+
+    return metals_config
+  end,
+  config = function(self, metals_config)
+    local nvim_metals_group = vim.api.nvim_create_augroup('nvim-metals', { clear = true })
+    vim.api.nvim_create_autocmd('FileType', {
+      pattern = self.ft,
+      callback = function()
+        require('metals').initialize_or_attach(metals_config)
+      end,
+      group = nvim_metals_group,
+    })
+  end,
+}
+
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
